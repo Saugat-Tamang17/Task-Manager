@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -30,6 +31,28 @@ type Task struct {
 var db *sql.DB
 var jwtSecret = []byte("your-secret-key")
 
+func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authUser := r.Header.Get("Authorization")
+		if authUser == "" {
+			http.Error(w, "Unauthorized or missing token.\n", http.StatusUnauthorized)
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authUser, "Bearer ")
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	}
+}
+
 func main() {
 	var err error
 	//this connects my api with the database(matching credential)//
@@ -47,6 +70,8 @@ func main() {
 	fmt.Println("\nConnected Succesfully")
 
 	defer db.Close() //well it will be executed after main does it things //
+
+	//function handler for the middlerware
 
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
@@ -95,8 +120,9 @@ func main() {
 	})
 
 	//GET METHOD , meaning json encoding and sending to client //
-	http.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/tasks", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
+
 			rows, err := db.Query("SELECT id,title,description,status,created_at FROM tasks")
 			if err != nil {
 				fmt.Println("\nError with the query DB:", err)
@@ -125,9 +151,9 @@ func main() {
 			return
 		}
 
-	})
+	}))
 
-	http.HandleFunc("/tasks/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/tasks/", authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "PUT" {
 			id := r.URL.Path[len("/tasks/"):]
 			var Updatetask Task
@@ -144,7 +170,7 @@ func main() {
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprintln(w, "task deleted successfully")
 		}
-	})
+	}))
 
 	fmt.Println("Server running on port 9090")
 	http.ListenAndServe(":9090", nil)
