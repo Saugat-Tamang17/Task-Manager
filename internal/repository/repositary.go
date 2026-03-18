@@ -43,3 +43,11 @@ func (r *postgresTaskRepo) GetAll(ctx context.Context) ([]model.Task, error) {
 	}
 	return tasks, nil
 }
+
+func (r *postgresTaskRepo) Create(ctx context.Context, task *model.Task) error {
+	err := r.db.QueryRowContext(ctx, "INSERT into tasks(title,description,status,created_at) VALUES ($1,$2,$3,$4) RETURNING id)", task.Title, task.Description, task.Status, task.CreatedAt).Scan(&task.Id)
+	if err != nil {
+		return fmt.Errorf("taskRepo.Create: %w", err)
+	}
+	return nil
+}
