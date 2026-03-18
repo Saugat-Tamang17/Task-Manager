@@ -77,3 +77,16 @@ func (r *postgresAuthRepo) Register(ctx context.Context, user *model.AuthUser) e
 	}
 	return nil
 }
+
+func (r *postgresAuthRepo) GetByUsername(ctx context.Context, username string) (*model.AuthUser, error) {
+	var user model.AuthUser
+	err := r.db.QueryRowContext(
+		ctx,
+		"SELECT id, username, password FROM users_jwt WHERE username=$1",
+		username,
+	).Scan(&user.Id, &user.Username, &user.Password)
+	if err != nil {
+		return nil, fmt.Errorf("authRepo.GetByUsername: %w", err)
+	}
+	return &user, nil
+}
