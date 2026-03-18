@@ -67,3 +67,13 @@ func (r *postgresTaskRepo) Delete(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+// now that all of the task are over , we moving to the authenticating functions //
+
+func (r *postgresAuthRepo) Register(ctx context.Context, user *model.AuthUser) error {
+	err := r.db.QueryRowContext(ctx, "INSERT INTO users_jwt(username,password) VALUES($1,$2) RETURNING id", user.Username, user.Password).Scan(&user.Id)
+	if err != nil {
+		return fmt.Errorf("AuthRepo.Register : %w", err)
+	}
+	return nil
+}
