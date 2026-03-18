@@ -51,3 +51,19 @@ func (r *postgresTaskRepo) Create(ctx context.Context, task *model.Task) error {
 	}
 	return nil
 }
+
+func (r *postgresTaskRepo) Update(ctx context.Context, id string, task *model.Task) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE tasks SET title=$1, description=$2, status=$3, created_at=$4 WHERE id=$5", task.Title, task.Description, task.Status, task.CreatedAt, id)
+	if err != nil {
+		return fmt.Errorf("TaskRepo.Update =%w", err)
+	}
+	return nil
+}
+
+func (r *postgresTaskRepo) Delete(ctx context.Context, id string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM tasks WHERE id=$1", id)
+	if err != nil {
+		return fmt.Errorf("taskRepo.Delete: %w", err)
+	}
+	return nil
+}
